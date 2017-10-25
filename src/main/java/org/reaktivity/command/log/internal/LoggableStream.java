@@ -25,6 +25,7 @@ import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
 import org.reaktivity.command.log.internal.types.stream.EndFW;
+import org.reaktivity.command.log.internal.types.stream.Http2DataExFW;
 import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
@@ -40,6 +41,7 @@ public final class LoggableStream implements AutoCloseable
     private final WindowFW windowRO = new WindowFW();
 
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final Http2DataExFW http2DataExRO = new Http2DataExFW();
 
     private final String streamFormat;
     private final String throttleFormat;
@@ -125,6 +127,7 @@ public final class LoggableStream implements AutoCloseable
 
             httpBeginEx.headers()
                        .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
+
         }
     }
 
@@ -135,7 +138,26 @@ public final class LoggableStream implements AutoCloseable
         final int length = data.length();
         final long authorization = data.authorization();
 
-        out.printf(format(streamFormat, streamId, format("DATA [%d] [0x%016x]", length, authorization)));
+        if (data.extension().sizeof() > 0 && streamFormat.startsWith("[http-cache"))
+        {
+            try
+            {
+                out.printf(format(streamFormat, streamId, format("DATA [%d] [0x%016x]", length, authorization)));
+                OctetsFW extension = data.extension();
+                http2DataExRO.wrap(extension.buffer(), extension.offset(), extension.offset() + extension.sizeof());
+                http2DataExRO.headers().forEach(
+                        h -> System.out.println("\t push-promise \t" + h.name().asString() + ": " + h.value().asString()));
+            }
+            catch(RuntimeException e)
+            {
+                System.out.println("DPW WHAT ERROR" + e);
+                e.printStackTrace();
+            }
+        }
+        else
+        {
+            out.printf(format(streamFormat, streamId, format("DATA [%d] [0x%016x]", length, authorization)));
+        }
     }
 
     private void handleEnd(
