@@ -37,7 +37,6 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
     private final AtomicLong headPosition;
     private final AtomicBuffer buffer;
 
-
     public OneToOneRingBufferSpy(
         final AtomicBuffer buffer)
     {

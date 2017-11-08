@@ -121,7 +121,7 @@ public final class LoggableStream implements AutoCloseable
         out.printf(streamFormat, streamId,
                    format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
 
-        if (verbose && sourceName.startsWith("http"))
+        if (verbose && (sourceName.startsWith("http") || sourceName.equals("auth-jwt")))
         {
             HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
 
@@ -140,19 +140,11 @@ public final class LoggableStream implements AutoCloseable
 
         if (data.extension().sizeof() > 0 && streamFormat.startsWith("[http-cache"))
         {
-            try
-            {
                 out.printf(format(streamFormat, streamId, format("DATA [%d] [0x%016x]", length, authorization)));
                 OctetsFW extension = data.extension();
                 http2DataExRO.wrap(extension.buffer(), extension.offset(), extension.offset() + extension.sizeof());
                 http2DataExRO.headers().forEach(
-                        h -> System.out.println("\t push-promise \t" + h.name().asString() + ": " + h.value().asString()));
-            }
-            catch(RuntimeException e)
-            {
-                System.out.println("DPW WHAT ERROR" + e);
-                e.printStackTrace();
-            }
+                        h -> out.printf("\tpush-promise\t%s: %s\n", h.name().asString(), h.value().asString()));
         }
         else
         {

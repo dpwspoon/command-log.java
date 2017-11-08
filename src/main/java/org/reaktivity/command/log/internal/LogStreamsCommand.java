@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -46,16 +47,20 @@ public final class LogStreamsCommand
     private final long throttleCapacity;
     private final Logger out;
 
+    private final Predicate<? super Path> matchNukleus;
+
     LogStreamsCommand(
         Configuration config,
         Logger out,
-        boolean verbose)
+        boolean verbose,
+        Predicate<? super Path> matchNukleus)
     {
         this.directory = config.directory();
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
         this.out = out;
+        this.matchNukleus = matchNukleus;
     }
 
     private boolean isStreamsFile(
@@ -96,6 +101,7 @@ public final class LogStreamsCommand
         try (Stream<Path> files = Files.walk(directory, 3))
         {
             LoggableStream[] loggables = files.filter(this::isStreamsFile)
+                 .filter(matchNukleus)
                  .peek(this::onDiscovered)
                  .map(this::newLoggable)
                  .collect(toList())

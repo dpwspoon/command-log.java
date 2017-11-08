@@ -18,6 +18,7 @@ package org.reaktivity.command.log.internal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -38,7 +39,8 @@ public final class LogCountersCommand
     LogCountersCommand(
         Configuration config,
         Logger out,
-        boolean verbose)
+        boolean verbose,
+        Predicate<? super Path> matchNukleus)
     {
         this.directory = config.directory();
         this.verbose = verbose;
@@ -47,6 +49,7 @@ public final class LogCountersCommand
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
+        // TODO add matchNukleus
     }
 
     private boolean isControlFile(
