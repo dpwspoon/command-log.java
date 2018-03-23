@@ -53,15 +53,40 @@ public final class LoggableStream implements AutoCloseable
     private final Logger out;
     private final boolean verbose;
 
+    private final String windowFormat;
+    private final String abortFormat;
+    private final String endFormat;
+    private final String dataFormat;
+    private final String beginFormat;
+
     LoggableStream(
         String receiver,
         String sender,
         StreamsLayout layout,
         Logger logger,
-        boolean verbose)
+        boolean verbose,
+        String format)
     {
-        this.streamFormat = String.format("[%%d] [0x%%016x] [%s -> %s]\t[0x%%016x] %%s\n", sender, receiver);
-        this.throttleFormat = String.format("[%%d] [0x%%016x] [%s <- %s]\t[0x%%016x] %%s\n", sender, receiver);
+        if ("csv".equals(format))
+        {
+            this.streamFormat = String.format("%%d, 0x%%016x, %s -> %s,\t0x%%016x, %%s\n", sender, receiver);
+            this.throttleFormat = String.format("%%d, 0x%%016x, %s <- %s,\t0x%%016x, %%s\n", sender, receiver);
+            this.windowFormat = "WINDOW, %d, %d, %d";
+            this.abortFormat = "ABORT, 0x%016x";
+            this.endFormat = "END, 0x%016x";
+            this.dataFormat = "DATA. %d, %d, 0x%016x";
+            this.beginFormat = "BEGIN, \"%s\" 0x%016x, 0x%016x, 0x%016x";
+        }
+        else
+        {
+            this.streamFormat = String.format("[%%d] [0x%%016x] [%s -> %s]\t[0x%%016x] %%s\n", sender, receiver);
+            this.throttleFormat = String.format("[%%d] [0x%%016x] [%s <- %s]\t[0x%%016x] %%s\n", sender, receiver);
+            this.windowFormat = "WINDOW [%d] [%d] [%d]";
+            this.abortFormat = "ABORT [0x%016x]";
+            this.endFormat = "END [0x%016x]";
+            this.dataFormat = "DATA [%d] [%d] [0x%016x]";
+            this.beginFormat = "BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]";
+        }
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
@@ -124,7 +149,7 @@ public final class LoggableStream implements AutoCloseable
         OctetsFW extension = begin.extension();
 
         out.printf(streamFormat, timestamp, traceId, streamId,
-                   format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
+                   format(beginFormat, sourceName, sourceRef, correlationId, authorization));
 
         if (verbose && sourceName.startsWith("http"))
         {
@@ -168,7 +193,7 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = data.authorization();
 
         out.printf(format(streamFormat, timestamp, traceId, streamId,
-                          format("DATA [%d] [%d] [0x%016x]", length, padding, authorization)));
+                          format(dataFormat, length, padding, authorization)));
     }
 
     private void handleEnd(
@@ -179,7 +204,7 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = end.trace();
         final long authorization = end.authorization();
 
-        out.printf(format(streamFormat, timestamp, traceId, streamId, format("END [0x%016x]", authorization)));
+        out.printf(format(streamFormat, timestamp, traceId, streamId, format(endFormat, authorization)));
     }
 
     private void handleAbort(
@@ -190,7 +215,7 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = abort.trace();
         final long authorization = abort.authorization();
 
-        out.printf(format(streamFormat, timestamp, traceId, streamId, format("ABORT [0x%016x]", authorization)));
+        out.printf(format(streamFormat, timestamp, traceId, streamId, format(abortFormat, authorization)));
     }
 
     private void handleThrottle(
@@ -233,6 +258,6 @@ public final class LoggableStream implements AutoCloseable
         final long groupId = window.groupId();
 
         out.printf(format(throttleFormat, timestamp, traceId, streamId,
-                          format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
+                          format(windowFormat, credit, padding, groupId)));
     }
 }

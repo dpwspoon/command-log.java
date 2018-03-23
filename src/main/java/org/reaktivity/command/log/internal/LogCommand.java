@@ -41,6 +41,7 @@ public final class LogCommand
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
+        options.addOption(builder("f").longOpt("format").hasArg().desc("default | csv (used for post-processing)").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
@@ -54,6 +55,7 @@ public final class LogCommand
             String directory = cmdline.getOptionValue("directory");
             boolean verbose = cmdline.hasOption("verbose");
             String type = cmdline.getOptionValue("type", "streams");
+            String format = cmdline.getOptionValue("format", "default");
 
             Properties properties = new Properties();
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
@@ -62,7 +64,7 @@ public final class LogCommand
 
             if ("streams".equals(type) || "streams-nowait".equals(type))
             {
-                new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type)).invoke();
+                new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type), format).invoke();
             }
             else if ("counters".equals(type))
             {

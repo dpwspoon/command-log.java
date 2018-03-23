@@ -45,13 +45,16 @@ public final class LogStreamsCommand
     private final long throttleCapacity;
     private final boolean continuous;
     private final Logger out;
+    private final String format;
+
 
 
     LogStreamsCommand(
         Configuration config,
         Logger out,
         boolean verbose,
-        boolean continuous)
+        boolean continuous,
+        String format)
     {
         this.directory = config.directory();
         this.verbose = verbose;
@@ -59,6 +62,7 @@ public final class LogStreamsCommand
         this.throttleCapacity = config.throttleBufferCapacity();
         this.continuous = continuous;
         this.out = out;
+        this.format = format;
     }
 
     private boolean isStreamsFile(
@@ -82,7 +86,7 @@ public final class LogStreamsCommand
         String receiver = path.getName(path.getNameCount() - 3).toString();
         String sender = sender(path);
 
-        return new LoggableStream(receiver, sender, layout, out, verbose);
+        return new LoggableStream(receiver, sender, layout, out, verbose, format);
     }
 
     private void onDiscovered(
